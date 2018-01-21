@@ -1,0 +1,9 @@
+.travis.yml
+.vscode
+.vscode/*
+yarn.lock
+coverage
+package-lock.json
+dist_webpack
+/src
+/test
