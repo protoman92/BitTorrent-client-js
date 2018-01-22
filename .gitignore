@@ -1,12 +1,13 @@
 .DS_Store
+.env
 .vscode
 .vscode/*
-yarn.lock
+*.torrent
 coverage
-node_modules
-package-lock.json
 dist
 dist_webpack
+node_modules
+package-lock.json
+yarn.lock
 yarn-error.log
-.env
 npm-debug.log
