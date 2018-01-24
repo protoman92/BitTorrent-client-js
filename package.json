@@ -1,32 +1,37 @@
 {
-  "name": "p2p-client",
+  "name": "bittorrent-client-js",
   "version": "1.0.0",
-  "description": "Practive repository to learn peer-to-peer architecture.",
+  "description": "Practive repository to learn peer-to-peer BitTorrent architecture.",
   "main": "./dist/src/index.js",
   "scripts": {
-    "test": "tsc && jest"
+    "setup": "npm install",
+    "build": "tsc",
+    "test": "tsc && jest --coverage",
+    "coveralls": "cat ./coverage/lcov.info | coveralls"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/protoman92/p2p-client.git"
+    "url": "git+https://github.com/protoman92/BitTorrent-client-js.git"
   },
   "keywords": [
+    "bittorrent",
     "p2p"
   ],
   "author": "Hai Pham",
   "license": "UNLICENSED",
   "bugs": {
-    "url": "https://github.com/protoman92/p2p-client/issues"
+    "url": "https://github.com/protoman92/BitTorrent-client-js/issues"
   },
-  "homepage": "https://github.com/protoman92/p2p-client#readme",
+  "homepage": "https://github.com/protoman92/BitTorrent-client-js#readme",
   "devDependencies": {
     "@types/jest": "^22.0.1",
+    "coveralls": "^3.0.0",
     "jest": "^22.1.4",
     "ts-jest": "^22.0.1"
   },
   "dependencies": {
     "@types/node": "^9.3.0",
-    "bencode": "^1.0.0",
-    "javascriptutilities": "^1.3.5"
+    "bencoder-js": "^1.0.2",
+    "jsrequestframework": "^1.1.6"
   }
 }
