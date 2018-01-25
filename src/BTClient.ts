@@ -1,29 +1,30 @@
+import { Socket, SocketType } from 'dgram';
 import { Observable } from 'rxjs';
 import { BuildableType, BuilderType, Nullable, Try } from 'javascriptutilities';
-
-import {
-  RequestGenerator as Generator,
-  RequestHandlerType,
-  RequestProcessor,
-  ResultProcessor as Processor,
-} from 'jsrequestframework';
-
-import * as Operation from './BTOperation';
+import { RequestProcessor } from 'jsrequestframework';
 import * as Req from './BTRequest';
 
 export type Res = any;
 export type RQProcessor = RequestProcessor.Type<Req.Type>;
+
 export let builder = (): Builder => new Builder();
 
 /**
- * Represents a BitTorrent client.
- * @extends {RequestHandlerType<Req.Type,any>} Request handler extension.
+ * Represents the result of a socket.send request.
  */
-export interface Type extends RequestHandlerType<Req.Type,Res> {}
+export interface SocketResultType {
+  socket: Socket;
+  sent: number;
+}
 
 /**
  * Represents a BitTorrent client.
- * @implements {BuildableType} Buildable implementation.
+ */
+export interface Type {}
+
+/**
+ * Represents a BitTorrent client.
+ * @implements {BuildableType<Builder>} Buildable implementation.
  * @implements {Type} Type implementation.
  */
 export class Self implements BuildableType<Builder>, Type {
@@ -34,48 +35,6 @@ export class Self implements BuildableType<Builder>, Type {
 
   public requestProcessor = (): RQProcessor => {
     return Try.unwrap(this.processor, 'Missing request processor').getOrThrow();
-  }
-
-  public request<Prev,Res2>(
-    previous: Try<Prev>,
-    generator: Generator<Prev,Req.Type>,
-    processor: Processor<Res,Res2>,
-  ): Observable<Try<Res2>> {
-    try {
-      let rqProcessor = this.requestProcessor();
-      return rqProcessor.process(previous, generator, this.perform, processor);
-    } catch (e) {
-      return Observable.of(Try.failure(e));
-    }
-  }
-
-  /**
-   * Perform the BitTorrent request.
-   * @param {Req.Type} request A Req instance.
-   * @returns {Observable<Try<Res>>} An Observable instance.
-   */
-  private perform = (request: Req.Type): Observable<Try<Res>> => {
-    try {
-      let operation = request.operation().getOrThrow();
-
-      switch (operation) {
-        case Operation.Case.ANNOUNCE: return this.performAnnounce(request);
-        case Operation.Case.CONNECT: return this.performConnect(request);
-        default: throw Error(`Unsupported operation: ${operation}`);
-      }
-    } catch (e) {
-      return Observable.of(Try.failure(e));
-    }
-  }
-
-  private performAnnounce = (request: Req.Type): Observable<Try<Res>> => {
-    console.log(request);
-    throw Error('');
-  }
-
-  private performConnect = (request: Req.Type): Observable<Try<Res>> => {
-    console.log(request);
-    throw Error('');
   }
 }
 

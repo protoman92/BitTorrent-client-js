@@ -1,3 +1,4 @@
+import { SocketType } from 'dgram';
 import { BuildableType, BuilderType, Nullable, Try } from 'javascriptutilities';
 
 import {
@@ -16,11 +17,12 @@ export let builder = (): Builder => new Builder();
  */
 export interface Type extends RequestType {
   operation(): Try<BTOperation.Case>;
+  socketType(): SocketType;
 }
 
 /**
  * Represents a BitTorrent request.
- * @implements {BuildableType} Buildable implementation.
+ * @implements {BuildableType<Builder>} Buildable implementation.
  * @implements {Type} Type implementation.
  */
 export class Self implements BuildableType<Builder>, Type {
@@ -29,12 +31,14 @@ export class Self implements BuildableType<Builder>, Type {
   rqDescription: string;
   retryCount: number;
   btOperation: Nullable<BTOperation.Case>;
+  btSocketType: SocketType;
 
   public constructor() {
     this.inclFilters = [];
     this.exclFilters = [];
     this.rqDescription = '';
     this.retryCount = 1;
+    this.btSocketType = 'udp4';
   }
 
   public builder = (): Builder => builder();
@@ -47,11 +51,13 @@ export class Self implements BuildableType<Builder>, Type {
   public operation = (): Try<BTOperation.Case> => {
     return Try.unwrap(this.btOperation, `Missing operation for ${this}`);
   }
+
+  public socketType = (): SocketType => this.btSocketType;
 }
 
 /**
  * Represents a BitTorrent request builder.
- * @implements {BuilderType} Builder implementation.
+ * @implements {BuilderType<Self>} Builder implementation.
  * @implements {RequestBuilderType} Request builder implementation.
  */
 export class Builder implements BuilderType<Self>, RequestBuilderType {
@@ -81,13 +87,35 @@ export class Builder implements BuilderType<Self>, RequestBuilderType {
     return this;
   }
 
+  /**
+   * Set the request operation.
+   * @param {Nullable<BTOperation.Case>} operation A BTOperation instance.
+   * @returns {this} The current Builder instance.
+   */
+  public withOperation = (operation: Nullable<BTOperation.Case>): this => {
+    this.request.btOperation = operation;
+    return this;
+  }
+
+  /**
+   * Set the request socket type.
+   * @param {SocketType} type A SocketType instance.
+   * @returns {this} The current Builder instance.
+   */
+  public withSocketType = (type: SocketType): this => {
+    this.request.btSocketType = type;
+    return this;
+  }
+
   public withBuildable = (buildable: Nullable<Self>): this => {
     if (buildable !== undefined && buildable !== null) {
       return this
         .withInclusiveFilters(buildable.inclFilters)
         .withExclusiveFilters(buildable.exclFilters)
         .withRequestDescription(buildable.rqDescription)
-        .withRequestRetries(buildable.retryCount);
+        .withRequestRetries(buildable.retryCount)
+        .withOperation(buildable.btOperation)
+        .withSocketType(buildable.btSocketType);
     } else {
       return this;
     }
