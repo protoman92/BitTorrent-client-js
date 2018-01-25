@@ -1,5 +1,4 @@
-import { Socket, SocketType } from 'dgram';
-import { Observable } from 'rxjs';
+import { Socket } from 'dgram';
 import { BuildableType, BuilderType, Nullable, Try } from 'javascriptutilities';
 import { RequestProcessor } from 'jsrequestframework';
 import * as Req from './BTRequest';

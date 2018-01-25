@@ -1,6 +1,6 @@
+import * as crypto from 'crypto';
 import { AddressInfo, Socket } from 'dgram';
 import * as urlModule from 'url';
-import { UrlWithStringQuery } from 'url';
 import { BehaviorSubject, Observable, Subscription } from 'rxjs';
 import { BuildableType, BuilderType, Nullable, Try } from 'javascriptutilities';
 
@@ -28,18 +28,33 @@ export interface MessageParamsType extends UrlParamsType {
   message: Buffer | string;
 }
 
-export let builder = (): Builder => new Builder();
+/**
+ * Represents the response for a 'connect' request.
+ */
+export interface ConnectionResponseType {
+  action: number;
+  transactionId: number;
+  connectionId: Buffer;
+}
+
+/**
+ * Represents a transaction id randomizer.
+ */
+export interface TransactionIdRandomizer {
+  randomBytes: (size: number) => Buffer;
+}
 
 /**
  * Send a message using a specified socket.
- * @param {SocketMessageParams} params A SocketMessageParams instance.
+ * @param {Try<SocketMessageParams>} params A SocketMessageParams instance.
  * @returns {Observable<Try<number>>} An Observable instance.
  */
-export let sendMessage = (params: MessageParamsType): Observable<Try<number>> => {
+export let sendMessage = (params: Try<MessageParamsType>): Observable<Try<number>> => {
   try {
-    let socket = params.socket;
-    let url = urlModule.parse(params.url);
-    let msg = params.message;
+    let skParams = params.getOrThrow();
+    let socket = skParams.socket;
+    let url = urlModule.parse(skParams.url);
+    let msg = skParams.message;
 
     let port = Try.unwrap(url.port, `Missing port for ${url}`)
       .map(v => Number.parseInt(v))
@@ -65,6 +80,54 @@ export let sendMessage = (params: MessageParamsType): Observable<Try<number>> =>
     return Observable.of(Try.failure(e));
   }
 };
+
+/**
+ * Create a message for the initial 'connect' request.
+ * @param {TransactionIdRandomizer} randomizer Transaction id randomizer.
+ * @returns {Try<Buffer>} A Try Buffer instance.
+ */
+export let createConnectMessage = (randomizer: TransactionIdRandomizer): Try<Buffer> => {
+  try {
+    let transactionId = randomizer.randomBytes(4);
+    let message = Buffer.alloc(16);
+
+    /// Write the connection id.
+    message.writeUInt32BE(0x417, 0);
+    message.writeUInt32BE(0x27101980, 4);
+
+    /// Write the action.
+    message.writeUInt32BE(0, 8);
+
+    /// Copy the transaction id.
+    transactionId.copy(message, 12);
+
+    return Try.success(message);
+  } catch (e) {
+    return Try.failure(e);
+  }
+};
+
+/**
+ * Parse the response of a 'connect' request.
+ * @param {Buffer} response A Buffer instance.
+ * @returns {Try<ConnectionResponseType>} A Try ConnectionResponseType instance.
+ */
+export let parseConnectionResponse = (response: Buffer): Try<ConnectionResponseType> => {
+  let transactionId = Try.unwrap(response.readUInt32BE(4), 'Invalid transaction id');
+
+  let connectionId = Try.success(response.slice(8))
+    .filter(v => v.length > 0, 'Invalid connection id');
+  
+  return Try.unwrap(response.readUInt32BE(0), 'Invalid action')
+    .zipWith(transactionId, (v1, v2): [number, number] => [v1, v2])
+    .zipWith(connectionId, (v1, v2) => ({
+      action: v1[0],
+      transactionId: v1[1],
+      connectionId: v2,
+    }));
+};
+
+export let builder = (): Builder => new Builder();
 
 /**
  * Represents a BitTorrent messaging handler.
@@ -133,12 +196,19 @@ export class Self implements BuildableType<Builder>, Type {
     }
   }
 
-  private sendConnectMessage = (_params: UrlParamsType): Observable<Try<void>> => {
-    throw Error('');
+  /**
+   * Send the initial connect message.
+   * @param {UrlParamsType} params A UrlParamsType instance.
+   * @returns {Observable<Try<number>>} An Observable instance.
+   */
+  private sendConnectMessage = (params: UrlParamsType): Observable<Try<number>> => {
+    let message = createConnectMessage(crypto);
+    let mParams = message.map(v => Object.assign({}, params, { message: v }));
+    return sendMessage(mParams);
   }
 
   private sendAnnounceMessage = (_params: UrlParamsType): Observable<Try<void>> => {
-    throw Error('');
+    return Observable.empty();
   }
 }
 
